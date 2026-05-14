@@ -12,3 +12,23 @@ output "log_archive_bucket_region" {
   description = "AWS region where the log-archive S3 bucket is managed."
   value       = var.region
 }
+
+output "cloudtrail_name" {
+  description = "Name of the organization CloudTrail."
+  value       = aws_cloudtrail.org.name
+}
+
+output "cloudtrail_arn" {
+  description = "ARN of the organization CloudTrail."
+  value       = aws_cloudtrail.org.arn
+}
+
+output "guardduty_audit_detector_id" {
+  description = "GuardDuty detector ID in the audit account."
+  value       = aws_guardduty_detector.audit.id
+}
+
+output "securityhub_audit_account_enabled" {
+  description = "Security Hub account resource ID in the audit account."
+  value       = aws_securityhub_account.audit.id
+}
