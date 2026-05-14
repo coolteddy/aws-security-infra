@@ -1,0 +1,91 @@
+name: Security Plan
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "*.tf"
+      - "terraform.tfvars.example"
+      - ".github/workflows/security-plan.yml"
+      - ".github/workflows/security-apply.yml"
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+
+    env:
+      TF_VAR_management_account_id: ${{ secrets.MANAGEMENT_ACCOUNT_ID }}
+      TF_VAR_log_archive_account_id: ${{ secrets.LOG_ARCHIVE_ACCOUNT_ID }}
+      TF_VAR_audit_account_id: ${{ secrets.AUDIT_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials (management gateway OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.MANAGEMENT_ACCOUNT_ID }}:role/github-actions-aws-security-infra
+          aws-region: eu-west-2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "~> 1.6"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan -no-color 2>&1 | tee plan_output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Post plan to PR
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('plan_output.txt', 'utf8');
+            const maxLength = 65000;
+            const truncated = plan.length > maxLength
+              ? plan.substring(0, maxLength) + '\n\n... (truncated; see Actions log for full output)'
+              : plan;
+
+            const body = `## Terraform Plan — \`aws-security-infra\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`terraform
+            ${truncated}
+            \`\`\`
+
+            </details>
+
+            Triggered by commit \`${{ github.sha }}\` on branch \`${{ github.head_ref }}\`.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Check plan exit code
+        if: steps.plan.outputs.exit_code != '0'
+        run: exit 1

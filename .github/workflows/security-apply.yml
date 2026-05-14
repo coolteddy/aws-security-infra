@@ -1,0 +1,53 @@
+name: Security Apply
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "*.tf"
+      - "terraform.tfvars.example"
+      - ".github/workflows/security-plan.yml"
+      - ".github/workflows/security-apply.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    environment: security-production
+
+    env:
+      TF_VAR_management_account_id: ${{ secrets.MANAGEMENT_ACCOUNT_ID }}
+      TF_VAR_log_archive_account_id: ${{ secrets.LOG_ARCHIVE_ACCOUNT_ID }}
+      TF_VAR_audit_account_id: ${{ secrets.AUDIT_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials (management gateway OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.MANAGEMENT_ACCOUNT_ID }}:role/github-actions-aws-security-infra
+          aws-region: eu-west-2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "~> 1.6"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve

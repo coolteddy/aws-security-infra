@@ -1,0 +1,130 @@
+# aws-security-infra
+
+Terraform for the AWS security accounts used by the Loadberry POC.
+
+This repo manages two accounts in the Security OU:
+
+- `log-archive` — immutable audit log storage (S3 Object Lock, CloudTrail destination)
+- `audit` — security monitoring hub (GuardDuty + Security Hub delegated admin)
+
+---
+
+## Prerequisites
+
+Both accounts must exist in AWS Organizations before applying anything here.
+Account creation is managed by `aws-org-infra/2-organisation/accounts.tf`.
+
+The GitHub Actions OIDC gateway role (`github-actions-aws-security-infra`) must also exist.
+It is defined in `aws-org-infra/2-organisation/github_oidc.tf` — one role with access to
+both log-archive and audit accounts.
+
+---
+
+## Build order — two rounds
+
+The build is intentionally split. The log-archive S3 bucket must exist before CloudTrail,
+GuardDuty, and Security Hub are wired up. The sandbox Config delivery channel also depends
+on this bucket existing.
+
+### Round 1 — log-archive foundation (apply first)
+
+```
+log_archive.tf    S3 bucket + Object Lock GOVERNANCE + versioning + SSE + bucket policy
+```
+
+Stop after Round 1. Confirm the bucket exists before proceeding.
+
+### Round 2 — security services (after bucket confirmed)
+
+```
+cloudtrail.tf     Org-level CloudTrail → log-archive S3 (management events only — free)
+guardduty.tf      GuardDuty delegated admin → audit account + auto-enrol all org accounts
+securityhub.tf    Security Hub delegated admin → audit account + CIS standard
+```
+
+---
+
+## File structure
+
+```
+aws-security-infra/
+├── versions.tf              Terraform + provider version constraints
+├── providers.tf             Three provider aliases: management, log_archive, audit
+├── backend.tf               S3 backend in management account
+├── variables.tf             Account IDs, region, tags (no sensitive defaults)
+├── outputs.tf               Bucket ARN, CloudTrail ARN, detector IDs
+├── terraform.tfvars.example Placeholder values — copy to terraform.tfvars locally
+│
+├── log_archive.tf           Round 1 — S3 bucket + Object Lock + bucket policy
+├── cloudtrail.tf            Round 2 — org-level CloudTrail
+├── guardduty.tf             Round 2 — GuardDuty delegated admin
+└── securityhub.tf           Round 2 — Security Hub delegated admin
+```
+
+---
+
+## S3 Object Lock
+
+Object Lock must be enabled at bucket creation time — it cannot be added later.
+
+```hcl
+object_lock_enabled = true
+```
+
+This POC uses `GOVERNANCE` mode with 7-day retention:
+
+```hcl
+mode = "GOVERNANCE"
+days = 7
+```
+
+`GOVERNANCE` mode prevents normal deletes during the retention period but can be bypassed
+by a principal with `s3:BypassGovernanceRetention`. This allows cleanup after the POC.
+
+`COMPLIANCE` mode is stronger — no principal including root can delete objects before
+retention expires. **Never switch this POC repo to COMPLIANCE mode** — cleanup becomes
+impossible until the retention period expires on every object.
+
+---
+
+## POC vs Production
+
+| Setting | This repo (POC) | Loadberry production |
+|---|---|---|
+| Object Lock mode | `GOVERNANCE` — cleanable | `COMPLIANCE` — truly immutable |
+| Retention | 7 days | 365 days minimum |
+| Account creation | Manual via aws-org-infra | Control Tower automatic |
+| Wiring | Manual Terraform | CT handles automatically |
+
+---
+
+## Cost
+
+| Service | Cost |
+|---|---|
+| GuardDuty | $0 — 30-day free trial per account |
+| Security Hub | $0 — 30-day free trial per account |
+| CloudTrail org trail | $0 — management events free |
+| S3 log storage | ~$0.01/month at POC scale |
+| **Total** | **~$0.50** — run within 30-day trial window |
+
+---
+
+## Teardown warning
+
+An SCP (`deny_security_monitoring_disable`) in the org blocks GuardDuty and Config
+destroy operations. Before running `terraform destroy` on any security baseline resources:
+
+1. Temporarily relax the SCP in AWS console → Organizations → Policies
+2. Run the destroy
+3. Restore the SCP immediately
+
+Keep the relaxation window short — the SCP applies to the whole org.
+
+---
+
+## Safety
+
+- Do not commit real `terraform.tfvars` — use `terraform.tfvars.example` only
+- Do not push directly to `main` unless you intend to trigger the apply workflow
+- Never switch Object Lock to `COMPLIANCE` mode in this repo
