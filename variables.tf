@@ -28,6 +28,12 @@ variable "log_archive_bucket_name" {
   default     = "loadberry-log-archive-eu-west-2"
 }
 
+variable "cloudtrail_name" {
+  description = "Organization CloudTrail name."
+  type        = string
+  default     = "loadberry-org-trail"
+}
+
 variable "tags" {
   description = "Default tags applied to security infrastructure resources."
   type        = map(string)

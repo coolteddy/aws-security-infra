@@ -1,0 +1,24 @@
+resource "aws_securityhub_account" "audit" {
+  provider = aws.audit
+}
+
+resource "aws_securityhub_organization_admin_account" "audit" {
+  provider         = aws.management
+  admin_account_id = var.audit_account_id
+
+  depends_on = [aws_securityhub_account.audit]
+}
+
+resource "aws_securityhub_standards_subscription" "cis" {
+  provider      = aws.audit
+  standards_arn = "arn:aws:securityhub:::ruleset/cis-aws-foundations-benchmark/v/1.2.0"
+
+  depends_on = [aws_securityhub_account.audit]
+}
+
+resource "aws_securityhub_standards_subscription" "aws_foundational" {
+  provider      = aws.audit
+  standards_arn = "arn:aws:securityhub:${var.region}::standards/aws-foundational-security-best-practices/v/1.0.0"
+
+  depends_on = [aws_securityhub_account.audit]
+}

@@ -39,7 +39,7 @@ Stop after Round 1. Confirm the bucket exists before proceeding.
 ```
 cloudtrail.tf     Org-level CloudTrail → log-archive S3 (management events only — free)
 guardduty.tf      GuardDuty delegated admin → audit account + auto-enrol all org accounts
-securityhub.tf    Security Hub delegated admin → audit account + CIS standard
+securityhub.tf    Security Hub delegated admin → audit account + CIS + AWS Foundational standards
 ```
 
 ---
@@ -84,6 +84,33 @@ by a principal with `s3:BypassGovernanceRetention`. This allows cleanup after th
 `COMPLIANCE` mode is stronger — no principal including root can delete objects before
 retention expires. **Never switch this POC repo to COMPLIANCE mode** — cleanup becomes
 impossible until the retention period expires on every object.
+
+---
+
+## GuardDuty delegated admin
+
+The audit account needs its own GuardDuty detector because it becomes the GuardDuty
+delegated administrator for the organization. That detector is the control point used
+to manage organization configuration and aggregate findings.
+
+Sandbox is different: its GuardDuty detector is a member-account detector. It generates
+findings for sandbox workloads; the audit account is the central admin account that
+receives and manages those findings.
+
+## Security Hub delegated admin
+
+Security Hub follows the same admin/member pattern. The audit account is enabled as
+the delegated administrator so it can act as the central findings and compliance hub.
+
+Sandbox Security Hub is a member-account setup. Its standards subscriptions, such as
+CIS AWS Foundations Benchmark, evaluate sandbox resources and produce findings that
+can be viewed centrally from the audit account.
+
+`CIS AWS Foundations Benchmark` is a compliance-style account baseline: root MFA,
+CloudTrail coverage, password policy, public S3 access, and open security groups.
+`AWS Foundational Security Best Practices` is AWS's broader service-level standard:
+S3 public access, encrypted EBS volumes, public RDS, secure load balancers, ECR image
+scanning, Lambda settings, and similar resource posture checks.
 
 ---
 
