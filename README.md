@@ -18,6 +18,31 @@ The GitHub Actions OIDC gateway role (`github-actions-aws-security-infra`) must 
 It is defined in `aws-org-infra/2-organisation/github_oidc.tf` — one role with access to
 both log-archive and audit accounts.
 
+### One-time manual CLI setup — org trusted service access
+
+Before the first apply, enable trusted service access for all three security services.
+This cannot be done via Terraform because the org is a `data` source (pre-existing),
+not a managed resource. Run once from the management account:
+
+```bash
+aws organizations enable-aws-service-access \
+  --service-principal cloudtrail.amazonaws.com \
+  --profile setnay-admin
+
+aws organizations enable-aws-service-access \
+  --service-principal guardduty.amazonaws.com \
+  --profile setnay-admin
+
+aws organizations enable-aws-service-access \
+  --service-principal securityhub.amazonaws.com \
+  --profile setnay-admin
+```
+
+Verify in the AWS console: **Organizations → Services** — all three should show **Enabled**.
+
+Without this, CloudTrail fails with `CloudTrailAccessNotEnabledException` and GuardDuty/Security Hub
+delegation fails with `BadRequestException`.
+
 ---
 
 ## Build order — two rounds
@@ -111,6 +136,25 @@ CloudTrail coverage, password policy, public S3 access, and open security groups
 `AWS Foundational Security Best Practices` is AWS's broader service-level standard:
 S3 public access, encrypted EBS volumes, public RDS, secure load balancers, ECR image
 scanning, Lambda settings, and similar resource posture checks.
+
+---
+
+## Organization service access
+
+Round 2 uses three permission layers:
+
+- GitHub OIDC lets GitHub Actions assume the management gateway role.
+- IAM policies on that role allow Terraform to call AWS APIs.
+- AWS Organizations trusted service access allows CloudTrail, GuardDuty, and Security Hub
+  themselves to operate across the organization.
+
+Trusted service access belongs to AWS Organizations, not to the GitHub role. The role only
+needs permission to enable/use those organization-level service integrations.
+
+If an org-level apply fails partway through, Terraform may mark the partially created
+resource as tainted. After the missing IAM or trusted-access prerequisite is fixed,
+Terraform can replace that new resource and continue. This happened with the initial
+CloudTrail org trail create during the POC.
 
 ---
 
