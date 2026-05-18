@@ -91,11 +91,6 @@ resource "aws_s3_bucket_policy" "log_archive" {
         }
         Action   = "s3:PutObject"
         Resource = "${aws_s3_bucket.log_archive.arn}/AWSLogs/*"
-        Condition = {
-          StringEquals = {
-            "s3:x-amz-acl" = "bucket-owner-full-control"
-          }
-        }
       },
       {
         Sid    = "AllowConfigBucketCheck"
