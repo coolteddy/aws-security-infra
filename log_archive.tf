@@ -19,16 +19,8 @@ resource "aws_s3_bucket_versioning" "log_archive" {
 }
 
 resource "aws_s3_bucket_object_lock_configuration" "log_archive" {
-  provider = aws.log_archive
-  bucket   = aws_s3_bucket.log_archive.id
-
-  rule {
-    default_retention {
-      mode = "GOVERNANCE"
-      days = 7
-    }
-  }
-
+  provider   = aws.log_archive
+  bucket     = aws_s3_bucket.log_archive.id
   depends_on = [aws_s3_bucket_versioning.log_archive]
 }
 
