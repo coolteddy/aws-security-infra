@@ -84,15 +84,6 @@ resource "aws_s3_bucket_policy" "log_archive" {
         Resource = aws_s3_bucket.log_archive.arn
       },
       {
-        Sid    = "AllowConfigWrite"
-        Effect = "Allow"
-        Principal = {
-          Service = "config.amazonaws.com"
-        }
-        Action   = "s3:PutObject"
-        Resource = "${aws_s3_bucket.log_archive.arn}/AWSLogs/*"
-      },
-      {
         Sid    = "AllowConfigBucketCheck"
         Effect = "Allow"
         Principal = {
@@ -100,6 +91,29 @@ resource "aws_s3_bucket_policy" "log_archive" {
         }
         Action   = "s3:GetBucketAcl"
         Resource = aws_s3_bucket.log_archive.arn
+      },
+      {
+        Sid    = "AllowConfigListBucket"
+        Effect = "Allow"
+        Principal = {
+          Service = "config.amazonaws.com"
+        }
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.log_archive.arn
+      },
+      {
+        Sid    = "AllowConfigWrite"
+        Effect = "Allow"
+        Principal = {
+          Service = "config.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.log_archive.arn}/AWSLogs/*/Config/*"
+        Condition = {
+          StringEquals = {
+            "s3:x-amz-acl" = "bucket-owner-full-control"
+          }
+        }
       },
       {
         Sid       = "DenyDelete"
