@@ -22,6 +22,12 @@ variable "audit_account_id" {
   sensitive   = true
 }
 
+variable "sandbox_account_id" {
+  description = "Sandbox AWS account ID. Used to scope Config cross-account delivery bucket policy."
+  type        = string
+  sensitive   = true
+}
+
 variable "log_archive_bucket_name" {
   description = "S3 bucket name for organization security logs."
   type        = string

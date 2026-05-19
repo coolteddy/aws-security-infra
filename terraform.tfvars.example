@@ -1,3 +1,4 @@
 management_account_id  = "<management-account-id>"
 log_archive_account_id = "<log-archive-account-id>"
 audit_account_id       = "<audit-account-id>"
+sandbox_account_id     = "<sandbox-account-id>"

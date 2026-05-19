@@ -84,36 +84,49 @@ resource "aws_s3_bucket_policy" "log_archive" {
         Resource = aws_s3_bucket.log_archive.arn
       },
       {
-        Sid    = "AllowConfigBucketCheck"
-        Effect = "Allow"
-        Principal = {
-          Service = "config.amazonaws.com"
-        }
-        Action   = "s3:GetBucketAcl"
-        Resource = aws_s3_bucket.log_archive.arn
+        Sid       = "AllowConfigServiceBucketCheck"
+        Effect    = "Allow"
+        Principal = { Service = "config.amazonaws.com" }
+        Action    = "s3:GetBucketAcl"
+        Resource  = aws_s3_bucket.log_archive.arn
+        Condition = { StringEquals = { "AWS:SourceAccount" = var.sandbox_account_id } }
       },
       {
-        Sid    = "AllowConfigListBucket"
-        Effect = "Allow"
-        Principal = {
-          Service = "config.amazonaws.com"
-        }
-        Action   = "s3:ListBucket"
-        Resource = aws_s3_bucket.log_archive.arn
+        Sid       = "AllowConfigServiceListBucket"
+        Effect    = "Allow"
+        Principal = { Service = "config.amazonaws.com" }
+        Action    = "s3:ListBucket"
+        Resource  = aws_s3_bucket.log_archive.arn
+        Condition = { StringEquals = { "AWS:SourceAccount" = var.sandbox_account_id } }
       },
       {
-        Sid    = "AllowConfigWrite"
-        Effect = "Allow"
-        Principal = {
-          Service = "config.amazonaws.com"
-        }
-        Action   = "s3:PutObject"
-        Resource = "${aws_s3_bucket.log_archive.arn}/AWSLogs/*/Config/*"
-        Condition = {
-          StringEquals = {
-            "s3:x-amz-acl" = "bucket-owner-full-control"
-          }
-        }
+        Sid       = "AllowConfigServiceWrite"
+        Effect    = "Allow"
+        Principal = { Service = "config.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.log_archive.arn}/AWSLogs/${var.sandbox_account_id}/Config/*"
+        Condition = { StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control", "AWS:SourceAccount" = var.sandbox_account_id } }
+      },
+      {
+        Sid       = "AllowConfigRoleBucketCheck"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${var.sandbox_account_id}:role/sandbox-config-recorder-role" }
+        Action    = "s3:GetBucketAcl"
+        Resource  = aws_s3_bucket.log_archive.arn
+      },
+      {
+        Sid       = "AllowConfigRoleListBucket"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${var.sandbox_account_id}:role/sandbox-config-recorder-role" }
+        Action    = "s3:ListBucket"
+        Resource  = aws_s3_bucket.log_archive.arn
+      },
+      {
+        Sid       = "AllowConfigRoleWrite"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${var.sandbox_account_id}:role/sandbox-config-recorder-role" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.log_archive.arn}/AWSLogs/${var.sandbox_account_id}/Config/*"
       },
       {
         Sid       = "DenyDelete"

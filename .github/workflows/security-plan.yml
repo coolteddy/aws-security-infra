@@ -24,6 +24,7 @@ jobs:
       TF_VAR_management_account_id: ${{ secrets.MANAGEMENT_ACCOUNT_ID }}
       TF_VAR_log_archive_account_id: ${{ secrets.LOG_ARCHIVE_ACCOUNT_ID }}
       TF_VAR_audit_account_id: ${{ secrets.AUDIT_ACCOUNT_ID }}
+      TF_VAR_sandbox_account_id: ${{ secrets.SANDBOX_ACCOUNT_ID }}
 
     steps:
       - name: Checkout code
