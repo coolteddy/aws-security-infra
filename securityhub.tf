@@ -22,3 +22,13 @@ resource "aws_securityhub_standards_subscription" "aws_foundational" {
 
   depends_on = [aws_securityhub_account.audit]
 }
+
+resource "aws_securityhub_member" "sandbox" {
+  provider   = aws.audit
+  account_id = var.sandbox_account_id
+  invite     = false
+
+  depends_on = [
+    aws_securityhub_organization_admin_account.audit
+  ]
+}
