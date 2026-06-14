@@ -11,9 +11,13 @@ resource "aws_guardduty_organization_admin_account" "audit" {
 }
 
 resource "aws_guardduty_organization_configuration" "audit" {
-  provider                         = aws.audit
-  detector_id                      = aws_guardduty_detector.audit.id
-  auto_enable_organization_members = "ALL"
+  provider    = aws.audit
+  detector_id = aws_guardduty_detector.audit.id
+
+  # POC teardown: this was "ALL" during validation so every existing and future
+  # organization account was automatically enrolled in GuardDuty.
+  # auto_enable_organization_members = "ALL"
+  auto_enable_organization_members = "NONE"
 
   depends_on = [aws_guardduty_organization_admin_account.audit]
 }
