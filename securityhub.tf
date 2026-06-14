@@ -23,12 +23,15 @@ resource "aws_securityhub_standards_subscription" "aws_foundational" {
   depends_on = [aws_securityhub_account.audit]
 }
 
-resource "aws_securityhub_member" "sandbox" {
-  provider   = aws.audit
-  account_id = var.sandbox_account_id
-  invite     = false
-
-  depends_on = [
-    aws_securityhub_organization_admin_account.audit
-  ]
-}
+# POC teardown: sandbox was explicitly associated with the audit delegated
+# administrator so cross-account findings could be validated. Keeping the
+# resource commented documents the tested relationship while Terraform removes it.
+# resource "aws_securityhub_member" "sandbox" {
+#   provider   = aws.audit
+#   account_id = var.sandbox_account_id
+#   invite     = false
+#
+#   depends_on = [
+#     aws_securityhub_organization_admin_account.audit
+#   ]
+# }
