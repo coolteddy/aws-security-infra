@@ -28,7 +28,8 @@ output "guardduty_audit_detector_id" {
   value       = aws_guardduty_detector.audit.id
 }
 
-output "securityhub_audit_account_enabled" {
-  description = "Security Hub account resource ID in the audit account."
-  value       = aws_securityhub_account.audit.id
-}
+# POC teardown: restore this output with aws_securityhub_account.audit.
+# output "securityhub_audit_account_enabled" {
+#   description = "Security Hub account resource ID in the audit account."
+#   value       = aws_securityhub_account.audit.id
+# }
